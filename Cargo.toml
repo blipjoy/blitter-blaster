@@ -7,7 +7,7 @@ edition = "2021"
 bevy = { version = "0.8", default_features = false, features = ["bevy_asset"] }
 bevy_embedded_assets = "0.4"
 bevy_kira_audio = "0.12"
-bevy_pixels = { git = "https://github.com/parasyte/bevy_pixels.git", rev = "3b3e1b25ec431a73108ddbd33cc5a1a890f44b35" }
+bevy_pixels = "0.6"
 log = "0.4"
 pix = "0.13"
 png = "0.17"
