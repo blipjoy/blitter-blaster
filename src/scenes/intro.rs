@@ -17,9 +17,13 @@ struct IntroState {
 
 struct Anim {
     duration: f32,
-    pos: (i32, i32),
+    pos: TransformBundle,
     image: Vec<u8>,
     sfx: Option<Handle<AudioSource>>,
+}
+
+struct AnimLoader<'a> {
+    asset_server: Res<'a, AssetServer>,
 }
 
 impl Plugin for ScenePlugin {
@@ -32,7 +36,7 @@ impl Plugin for ScenePlugin {
 
 impl ScenePlugin {
     fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
-        commands.insert_resource(IntroState::new(&asset_server));
+        commands.insert_resource(IntroState::new(asset_server));
     }
 
     fn update(
@@ -53,7 +57,8 @@ impl ScenePlugin {
 
                 commands
                     .spawn()
-                    .insert(Bitmap::new(pos, &image))
+                    .insert(Bitmap::new(&image))
+                    .insert_bundle(pos)
                     .insert(IntroScreen);
 
                 if let Some(sfx) = sfx {
@@ -76,83 +81,49 @@ impl ScenePlugin {
 }
 
 impl IntroState {
-    fn new(asset_server: &Res<AssetServer>) -> Self {
+    fn new(asset_server: Res<AssetServer>) -> Self {
+        let loader = AnimLoader::new(asset_server);
+
         Self {
             anim: vec![
-                Anim::load(
-                    asset_server,
-                    2.0,
-                    (250, 140),
-                    "images/logo-y.png",
-                    Some("sfx/blip7.ogg"),
-                ),
-                Anim::load(
-                    asset_server,
-                    0.5,
-                    (210, 140),
-                    "images/logo-o.png",
-                    Some("sfx/blip6.ogg"),
-                ),
-                Anim::load(
-                    asset_server,
-                    0.25,
-                    (170, 140),
-                    "images/logo-j.png",
-                    Some("sfx/blip5.ogg"),
-                ),
-                Anim::load(
-                    asset_server,
-                    0.15,
-                    (140, 140),
-                    "images/logo-p.png",
-                    Some("sfx/blip4.ogg"),
-                ),
-                Anim::load(
-                    asset_server,
-                    0.15,
-                    (120, 140),
-                    "images/logo-i.png",
-                    Some("sfx/blip3.ogg"),
-                ),
-                Anim::load(
-                    asset_server,
-                    0.5,
-                    (80, 140),
-                    "images/logo-l.png",
-                    Some("sfx/blip2.ogg"),
-                ),
-                Anim::load(
-                    asset_server,
-                    0.2,
-                    (40, 140),
-                    "images/logo-b.png",
-                    Some("sfx/blip1.ogg"),
-                ),
-                Anim::load(asset_server, 0.5, (120, 50), "images/logo.png", None),
+                loader.load(2.0, (250, 140), "logo-y.png", Some("blip7.ogg")),
+                loader.load(0.5, (210, 140), "logo-o.png", Some("blip6.ogg")),
+                loader.load(0.25, (170, 140), "logo-j.png", Some("blip5.ogg")),
+                loader.load(0.15, (140, 140), "logo-p.png", Some("blip4.ogg")),
+                loader.load(0.15, (120, 140), "logo-i.png", Some("blip3.ogg")),
+                loader.load(0.5, (80, 140), "logo-l.png", Some("blip2.ogg")),
+                loader.load(0.2, (40, 140), "logo-b.png", Some("blip1.ogg")),
+                loader.load(0.5, (120, 50), "logo.png", None),
             ],
             timer: Timer::from_seconds(0.0, false),
         }
     }
 }
 
-impl Anim {
-    fn load(
-        asset_server: &Res<AssetServer>,
-        duration: f32,
-        pos: (i32, i32),
-        image: &str,
-        sfx: Option<&str>,
-    ) -> Self {
-        let io = asset_server
+impl<'a> AnimLoader<'a> {
+    fn new(asset_server: Res<'a, AssetServer>) -> Self {
+        Self { asset_server }
+    }
+
+    fn load(&self, duration: f32, pos: (i32, i32), image: &str, sfx: Option<&str>) -> Anim {
+        let io = self
+            .asset_server
             .asset_io()
             .downcast_ref::<EmbeddedAssetIo>()
             .unwrap();
 
-        Self {
+        let transform = Transform::from_xyz(pos.0 as f32, pos.1 as f32, 0.0);
+        let pos = TransformBundle::from_transform(transform);
+        let image = io
+            .load_path_sync(Path::new(&format!("images/{image}")))
+            .unwrap();
+        let sfx = sfx.map(|path| self.asset_server.load(&format!("sfx/{path}")));
+
+        Anim {
             duration,
             pos,
-            image: io.load_path_sync(Path::new(image)).unwrap(),
-            sfx: sfx.map(|path| asset_server.load(path)),
+            image,
+            sfx,
         }
     }
 }

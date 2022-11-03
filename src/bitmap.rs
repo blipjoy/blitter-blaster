@@ -1,21 +1,53 @@
 use bevy::prelude::*;
-use pix::{rgb::Rgba8p, Raster};
+use bevy_pixels::prelude::*;
+use pix::{ops::SrcOver, rgb::Rgba8p, Raster};
 use std::io::Cursor;
 
+pub struct BitmapPlugin;
+
 #[derive(Component)]
-pub struct Bitmap {
-    pub pos: (i32, i32),
-    pub raster: Raster<Rgba8p>,
+pub struct Bitmap(Raster<Rgba8p>);
+
+impl Plugin for BitmapPlugin {
+    fn build(&self, app: &mut App) {
+        let PixelsOptions { width, height } = *app.world.resource::<PixelsOptions>();
+
+        app.insert_resource(Raster::<Rgba8p>::with_clear(width, height))
+            .add_system_to_stage(PixelsStage::Draw, blit);
+    }
 }
 
 impl Bitmap {
-    pub fn new(pos: (i32, i32), bytes: &[u8]) -> Self {
+    pub fn new(bytes: &[u8]) -> Self {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();
         let mut buf = vec![0; reader.output_buffer_size()];
         let info = reader.next_frame(&mut buf).unwrap();
         let raster = Raster::with_u8_buffer(info.width, info.height, &buf[..info.buffer_size()]);
 
-        Self { pos, raster }
+        Self(raster)
     }
+}
+
+fn blit(
+    mut pixels_res: ResMut<PixelsResource>,
+    mut raster: ResMut<Raster<Rgba8p>>,
+    bitmaps: Query<(&Bitmap, &Transform)>,
+) {
+    raster.clear();
+
+    // TODO: Sort bitmaps by Z coordinate
+    for (bitmap, transform) in &bitmaps {
+        let to = (
+            transform.translation.x as i32,
+            transform.translation.y as i32,
+        );
+
+        raster.composite_raster(to, &bitmap.0, (0, 0), SrcOver);
+    }
+
+    pixels_res
+        .pixels
+        .get_frame_mut()
+        .copy_from_slice(raster.as_u8_slice());
 }

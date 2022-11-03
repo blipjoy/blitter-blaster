@@ -2,8 +2,7 @@ use bevy::{log::LogSettings, prelude::*, utils::tracing::Level, window::WindowRe
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::prelude::*;
-use bitmap::Bitmap;
-use pix::{ops::SrcOver, rgb::Rgba8p, Raster};
+use bitmap::BitmapPlugin;
 
 mod bitmap;
 mod scenes;
@@ -34,16 +33,15 @@ fn main() {
             height: HEIGHT,
         })
         .insert_resource(log_settings())
-        .insert_resource(Raster::<Rgba8p>::with_clear(WIDTH, HEIGHT))
         .add_plugins_with(DefaultPlugins, |group| {
             group.add_before::<bevy::asset::AssetPlugin, _>(EmbeddedAssetPlugin)
         })
         .add_plugin(AudioPlugin)
         .add_plugin(PixelsPlugin)
+        .add_plugin(BitmapPlugin)
         .add_plugin(scenes::intro::ScenePlugin)
         // .add_plugin(scenes::title::ScenePlugin)
         .add_state(scenes::GameState::Intro)
-        .add_system_to_stage(PixelsStage::Draw, draw)
         .add_system(bevy::window::close_on_esc)
         .run();
 }
@@ -71,20 +69,4 @@ fn log_settings() -> LogSettings {
         std::env::var("LOG_FILTER").unwrap_or_else(|_| "wgpu=error,symphonia=error".to_string());
 
     LogSettings { level, filter }
-}
-
-fn draw(
-    mut pixels_res: ResMut<PixelsResource>,
-    mut raster: ResMut<Raster<Rgba8p>>,
-    bitmaps: Query<&Bitmap>,
-) {
-    raster.clear();
-    for bitmap in &bitmaps {
-        raster.composite_raster(bitmap.pos, &bitmap.raster, (0, 0), SrcOver);
-    }
-
-    pixels_res
-        .pixels
-        .get_frame_mut()
-        .copy_from_slice(raster.as_u8_slice());
 }
