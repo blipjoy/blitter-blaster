@@ -1,0 +1,26 @@
+[package]
+name = "blitter-blaster"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.8", default_features = false, features = ["bevy_asset"] }
+bevy_embedded_assets = "0.4"
+bevy_kira_audio = "0.12"
+bevy_pixels = { git = "https://github.com/parasyte/bevy_pixels.git", rev = "3b3e1b25ec431a73108ddbd33cc5a1a890f44b35" }
+log = "0.4"
+pix = "0.13"
+png = "0.17"
+tracing = "0.1"
+
+[features]
+default = ["optimize"]
+optimize = ["log/release_max_level_warn", "tracing/release_max_level_warn"]
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
