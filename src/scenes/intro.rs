@@ -48,24 +48,17 @@ impl ScenePlugin {
     ) {
         if state.timer.tick(time.delta()).finished() {
             if let Some(anim) = state.anim.pop() {
-                let Anim {
-                    duration,
-                    pos,
-                    image,
-                    sfx,
-                } = anim;
-
                 commands
                     .spawn()
-                    .insert(Bitmap::new(&image))
-                    .insert_bundle(pos)
+                    .insert(Bitmap::new(&anim.image))
+                    .insert_bundle(anim.pos)
                     .insert(IntroScreen);
 
-                if let Some(sfx) = sfx {
+                if let Some(sfx) = anim.sfx {
                     audio.play(sfx);
                 }
 
-                state.timer = Timer::from_seconds(duration, false);
+                state.timer = Timer::from_seconds(anim.duration, false);
             } else {
                 game_state.set(GameState::Title).unwrap();
             }
