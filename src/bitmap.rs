@@ -32,11 +32,14 @@ impl Bitmap {
 fn blit(
     mut pixels_res: ResMut<PixelsResource>,
     mut raster: ResMut<Raster<Rgba8p>>,
-    bitmaps: Query<(&Bitmap, &Transform)>,
+    query: Query<(&Bitmap, &Transform)>,
 ) {
     raster.clear();
 
-    // TODO: Sort bitmaps by Z coordinate
+    // Sort by Z coordinate
+    let mut bitmaps: Vec<_> = query.iter().collect();
+    bitmaps.sort_unstable_by_key(|(_, t)| (t.translation.z * 1000.0) as i64);
+
     for (bitmap, transform) in &bitmaps {
         let to = (
             transform.translation.x as i32,
