@@ -11,11 +11,13 @@ pub struct ScenePlugin;
 #[derive(Component)]
 struct IntroScreen;
 
+#[derive(Debug)]
 struct IntroState {
     anim: Vec<Anim>,
     timer: Timer,
 }
 
+#[derive(Debug)]
 struct Anim {
     duration: f32,
     pos: TransformBundle,

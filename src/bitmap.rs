@@ -3,6 +3,7 @@ use bevy_pixels::prelude::*;
 use pix::{ops::SrcOver, rgb::Rgba8p, Raster};
 use std::io::Cursor;
 
+#[derive(Debug)]
 pub struct BitmapPlugin;
 
 #[derive(Component)]
