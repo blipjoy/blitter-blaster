@@ -8,6 +8,7 @@ bevy = { version = "0.8", default_features = false, features = ["bevy_asset"] }
 bevy_embedded_assets = "0.4"
 bevy_kira_audio = "0.12"
 bevy_pixels = "0.6"
+directories = "4"
 pix = "0.13"
 png = "0.17"
 
