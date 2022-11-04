@@ -3,6 +3,7 @@ use crate::bitmap::Bitmap;
 use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetIo;
 use bevy_kira_audio::prelude::*;
+use bevy_pixels::*;
 use std::path::Path;
 
 pub struct ScenePlugin;
@@ -35,8 +36,8 @@ impl Plugin for ScenePlugin {
 }
 
 impl ScenePlugin {
-    fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
-        commands.insert_resource(IntroState::new(asset_server));
+    fn enter(mut commands: Commands, asset_server: Res<AssetServer>, options: Res<PixelsOptions>) {
+        commands.insert_resource(IntroState::new(asset_server, options.width));
     }
 
     fn update(
@@ -74,19 +75,20 @@ impl ScenePlugin {
 }
 
 impl IntroState {
-    fn new(asset_server: Res<AssetServer>) -> Self {
+    fn new(asset_server: Res<AssetServer>, width: u32) -> Self {
         let loader = AnimLoader::new(asset_server);
+        let hw = width as i32 / 2;
 
         Self {
             anim: vec![
-                loader.load(2.0, (250, 140), "logo-y.png", Some("blip7.ogg")),
-                loader.load(0.5, (210, 140), "logo-o.png", Some("blip6.ogg")),
-                loader.load(0.25, (170, 140), "logo-j.png", Some("blip5.ogg")),
-                loader.load(0.15, (140, 140), "logo-p.png", Some("blip4.ogg")),
-                loader.load(0.15, (120, 140), "logo-i.png", Some("blip3.ogg")),
-                loader.load(0.5, (80, 140), "logo-l.png", Some("blip2.ogg")),
-                loader.load(0.2, (40, 140), "logo-b.png", Some("blip1.ogg")),
-                loader.load(0.5, (120, 50), "logo.png", None),
+                loader.load(2.0, (hw + 90, 140), "logo-y.png", Some("blip7.ogg")),
+                loader.load(0.5, (hw + 50, 140), "logo-o.png", Some("blip6.ogg")),
+                loader.load(0.25, (hw + 10, 140), "logo-j.png", Some("blip5.ogg")),
+                loader.load(0.15, (hw - 20, 140), "logo-p.png", Some("blip4.ogg")),
+                loader.load(0.15, (hw - 40, 140), "logo-i.png", Some("blip3.ogg")),
+                loader.load(0.5, (hw - 80, 140), "logo-l.png", Some("blip2.ogg")),
+                loader.load(0.2, (hw - 120, 140), "logo-b.png", Some("blip1.ogg")),
+                loader.load(0.5, (hw - 40, 50), "logo.png", None),
             ],
             timer: Timer::from_seconds(0.0, false),
         }
