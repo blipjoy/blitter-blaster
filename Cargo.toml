@@ -8,13 +8,16 @@ bevy = { version = "0.8", default_features = false, features = ["bevy_asset"] }
 bevy_embedded_assets = "0.4"
 bevy_kira_audio = "0.12"
 bevy_pixels = "0.6"
-log = "0.4"
 pix = "0.13"
 png = "0.17"
-tracing = "0.1"
+
+# For the `optimize` feature
+log = { version = "0.4", optional = true }
+tracing = { version = "0.1", optional = true }
 
 [features]
 default = ["optimize"]
+# Disable the `optimize` feature to allow all log levels in release builds
 optimize = ["log/release_max_level_warn", "tracing/release_max_level_warn"]
 
 # Enable a small amount of optimization in debug mode
