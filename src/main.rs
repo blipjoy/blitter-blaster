@@ -40,8 +40,8 @@ fn main() {
         .add_plugin(AudioPlugin)
         .add_plugin(PixelsPlugin)
         .add_plugin(BitmapPlugin)
-        .add_plugin(scenes::intro::ScenePlugin)
-        // .add_plugin(scenes::title::ScenePlugin)
+        .add_plugin(scenes::intro::IntroPlugin)
+        .add_plugin(scenes::title::TitlePlugin)
         .add_state(scenes::GameState::Intro)
         .add_system(bevy::window::close_on_esc)
         .run();

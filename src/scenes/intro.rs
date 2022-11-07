@@ -6,7 +6,7 @@ use bevy_kira_audio::prelude::*;
 use bevy_pixels::*;
 use std::path::Path;
 
-pub struct ScenePlugin;
+pub struct IntroPlugin;
 
 #[derive(Component)]
 struct IntroScreen;
@@ -29,7 +29,7 @@ struct AnimLoader<'a> {
     asset_server: Res<'a, AssetServer>,
 }
 
-impl Plugin for ScenePlugin {
+impl Plugin for IntroPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_enter(GameState::Intro).with_system(Self::enter))
             .add_system_set(SystemSet::on_update(GameState::Intro).with_system(Self::update))
@@ -37,7 +37,7 @@ impl Plugin for ScenePlugin {
     }
 }
 
-impl ScenePlugin {
+impl IntroPlugin {
     fn enter(mut commands: Commands, asset_server: Res<AssetServer>, options: Res<PixelsOptions>) {
         commands.insert_resource(IntroState::new(asset_server, options.width));
     }
