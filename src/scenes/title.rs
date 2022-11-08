@@ -11,10 +11,13 @@ pub struct TitlePlugin;
 #[derive(Component)]
 struct TitleScreen;
 
+#[derive(Component)]
+struct Background(f32);
+
 impl Plugin for TitlePlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_enter(GameState::Title).with_system(Self::enter))
-            // .add_system_set(SystemSet::on_update(GameState::Title).with_system(Self::update))
+            .add_system_set(SystemSet::on_update(GameState::Title).with_system(Self::update))
             .add_system_set(SystemSet::on_exit(GameState::Title).with_system(Self::exit));
     }
 }
@@ -40,8 +43,9 @@ impl TitlePlugin {
         let image = io.load_path_sync(Path::new("images/bg1.png")).unwrap();
         commands
             .spawn()
-            .insert(Bitmap::new(&image))
+            .insert(Bitmap::new(&image).tiled(true))
             .insert_bundle(transform_bundle)
+            .insert(Background(0.0))
             .insert(TitleScreen);
 
         // Spawn the title logo
@@ -54,6 +58,16 @@ impl TitlePlugin {
             .insert(Bitmap::new(&image))
             .insert_bundle(transform_bundle)
             .insert(TitleScreen);
+    }
+
+    fn update(mut query: Query<(&mut Transform, &mut Background)>, time: Res<Time>) {
+        let delta = time.delta().as_secs_f32();
+
+        for (mut transform, mut background) in &mut query {
+            let motion = Vec3::new(-background.0.cos(), background.0.sin(), 0.0);
+            transform.translation += motion * 56.0 * delta;
+            background.0 -= 0.00033;
+        }
     }
 
     fn exit(mut commands: Commands, entities: Query<Entity, With<TitleScreen>>) {
