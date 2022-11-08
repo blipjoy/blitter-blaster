@@ -1,4 +1,4 @@
-pub const APP_NAME: &str = "Blitter Blaster";
+pub const APP_NAME: &str = "Odonata";
 
 // Screen resolutions for aspect ratios 4:3, 16:9, and 21:9.
 pub const WIDTH_STANDARD: u32 = 320;

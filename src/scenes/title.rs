@@ -66,7 +66,7 @@ impl TitlePlugin {
         for (mut transform, mut background) in &mut query {
             let motion = Vec3::new(-background.0.cos(), background.0.sin(), 0.0);
             transform.translation += motion * 56.0 * delta;
-            background.0 -= 0.00033;
+            background.0 -= 0.000033;
         }
     }
 
