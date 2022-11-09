@@ -678,21 +678,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
-name = "blitter-blaster"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_embedded_assets",
- "bevy_kira_audio",
- "bevy_pixels",
- "directories",
- "log",
- "pix",
- "png",
- "tracing",
-]
-
-[[package]]
 name = "block"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1902,6 +1887,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3370abb7372ed744232c12954d920d1a40f1c4686de9e79e800021ef492294bd"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "odonata"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_embedded_assets",
+ "bevy_kira_audio",
+ "bevy_pixels",
+ "directories",
+ "log",
+ "pix",
+ "png",
+ "tracing",
 ]
 
 [[package]]
