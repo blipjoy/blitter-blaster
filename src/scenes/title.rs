@@ -1,10 +1,8 @@
 use super::GameState;
-use crate::bitmap::Bitmap;
+use crate::bitmap::BitmapCache;
 use bevy::prelude::*;
-use bevy_embedded_assets::EmbeddedAssetIo;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::*;
-use std::path::Path;
 
 pub struct TitlePlugin;
 
@@ -40,6 +38,7 @@ impl Plugin for TitlePlugin {
 impl TitlePlugin {
     fn enter(
         mut commands: Commands,
+        mut cache: ResMut<BitmapCache>,
         asset_server: Res<AssetServer>,
         options: Res<PixelsOptions>,
         audio: Res<Audio>,
@@ -48,18 +47,13 @@ impl TitlePlugin {
             .play(asset_server.load("music/getting-started.ogg"))
             .looped();
 
-        let io = asset_server
-            .asset_io()
-            .downcast_ref::<EmbeddedAssetIo>()
-            .unwrap();
-
         // Spawn the background
         let transform = Transform::from_xyz(0.0, 0.0, 1.0);
         let transform_bundle = TransformBundle::from_transform(transform);
-        let image = io.load_path_sync(Path::new("images/bg1.png")).unwrap();
+        let bitmap = cache.get_or_create("images/bg1.png", &asset_server);
         commands
             .spawn()
-            .insert(Bitmap::new(&image).tiled(true))
+            .insert(bitmap.tiled(true))
             .insert_bundle(transform_bundle)
             .insert(Background)
             .insert(TitleScreen);
@@ -68,10 +62,10 @@ impl TitlePlugin {
         let x = (options.width / 2) as f32;
         let transform = Transform::from_xyz(x - 120.0, 65.0, 2.0);
         let transform_bundle = TransformBundle::from_transform(transform);
-        let image = io.load_path_sync(Path::new("images/odonata.png")).unwrap();
+        let bitmap = cache.get_or_create("images/odonata.png", &asset_server);
         commands
             .spawn()
-            .insert(Bitmap::new(&image))
+            .insert(bitmap)
             .insert_bundle(transform_bundle)
             .insert(TitleScreen);
     }

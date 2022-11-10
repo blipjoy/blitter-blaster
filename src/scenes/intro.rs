@@ -1,32 +1,29 @@
 use super::GameState;
-use crate::bitmap::Bitmap;
+use crate::bitmap::{Bitmap, BitmapCache};
 use bevy::prelude::*;
-use bevy_embedded_assets::EmbeddedAssetIo;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::*;
-use std::path::Path;
 
 pub struct IntroPlugin;
 
 #[derive(Component)]
 struct IntroScreen;
 
-#[derive(Debug)]
 struct IntroState {
     anim: Vec<Anim>,
     timer: Timer,
 }
 
-#[derive(Debug)]
 struct Anim {
     duration: f32,
     pos: TransformBundle,
-    image: Vec<u8>,
+    image: Bitmap,
     sfx: Option<Handle<AudioSource>>,
 }
 
 struct AnimLoader<'a> {
     asset_server: Res<'a, AssetServer>,
+    cache: ResMut<'a, BitmapCache>,
 }
 
 impl Plugin for IntroPlugin {
@@ -38,22 +35,27 @@ impl Plugin for IntroPlugin {
 }
 
 impl IntroPlugin {
-    fn enter(mut commands: Commands, asset_server: Res<AssetServer>, options: Res<PixelsOptions>) {
-        commands.insert_resource(IntroState::new(asset_server, options.width));
+    fn enter(
+        mut commands: Commands,
+        asset_server: Res<AssetServer>,
+        cache: ResMut<BitmapCache>,
+        options: Res<PixelsOptions>,
+    ) {
+        commands.insert_resource(IntroState::new(asset_server, cache, options.width));
     }
 
     fn update(
         mut commands: Commands,
         mut game_state: ResMut<State<GameState>>,
-        time: Res<Time>,
         mut state: ResMut<IntroState>,
+        time: Res<Time>,
         audio: Res<Audio>,
     ) {
         if state.timer.tick(time.delta()).finished() {
             if let Some(anim) = state.anim.pop() {
                 commands
                     .spawn()
-                    .insert(Bitmap::new(&anim.image))
+                    .insert(anim.image)
                     .insert_bundle(anim.pos)
                     .insert(IntroScreen);
 
@@ -77,8 +79,8 @@ impl IntroPlugin {
 }
 
 impl IntroState {
-    fn new(asset_server: Res<AssetServer>, width: u32) -> Self {
-        let loader = AnimLoader::new(asset_server);
+    fn new(asset_server: Res<AssetServer>, cache: ResMut<BitmapCache>, width: u32) -> Self {
+        let mut loader = AnimLoader::new(asset_server, cache);
         let hw = width as i32 / 2;
 
         Self {
@@ -98,22 +100,19 @@ impl IntroState {
 }
 
 impl<'a> AnimLoader<'a> {
-    fn new(asset_server: Res<'a, AssetServer>) -> Self {
-        Self { asset_server }
+    fn new(asset_server: Res<'a, AssetServer>, cache: ResMut<'a, BitmapCache>) -> Self {
+        Self {
+            asset_server,
+            cache,
+        }
     }
 
-    fn load(&self, duration: f32, pos: (i32, i32), image: &str, sfx: Option<&str>) -> Anim {
-        let io = self
-            .asset_server
-            .asset_io()
-            .downcast_ref::<EmbeddedAssetIo>()
-            .unwrap();
-
+    fn load(&mut self, duration: f32, pos: (i32, i32), image: &str, sfx: Option<&str>) -> Anim {
         let transform = Transform::from_xyz(pos.0 as f32, pos.1 as f32, 0.0);
         let pos = TransformBundle::from_transform(transform);
-        let image = io
-            .load_path_sync(Path::new(&format!("images/{image}")))
-            .unwrap();
+        let image = self
+            .cache
+            .get_or_create(&format!("images/{image}"), &self.asset_server);
         let sfx = sfx.map(|path| self.asset_server.load(&format!("sfx/{path}")));
 
         Anim {

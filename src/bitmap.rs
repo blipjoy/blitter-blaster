@@ -1,15 +1,17 @@
+use ahash::RandomState;
 use bevy::prelude::*;
+use bevy_embedded_assets::EmbeddedAssetIo;
 use bevy_pixels::prelude::*;
 use pix::{ops::SrcOver, rgb::Rgba8p, Raster};
-use std::io::Cursor;
+use std::{collections::HashMap, io::Cursor, path::Path, sync::Arc};
 
 #[derive(Debug)]
 pub struct BitmapPlugin;
 
-#[derive(Component)]
+#[derive(Clone, Component)]
 pub struct Bitmap {
     tiled: bool,
-    raster: Raster<Rgba8p>,
+    raster: Arc<Raster<Rgba8p>>,
 }
 
 struct TileIter {
@@ -18,22 +20,32 @@ struct TileIter {
     end: i32,
 }
 
+#[derive(Default)]
+pub struct BitmapCache {
+    map: HashMap<String, Bitmap, RandomState>,
+}
+
 impl Plugin for BitmapPlugin {
     fn build(&self, app: &mut App) {
         let PixelsOptions { width, height } = *app.world.resource::<PixelsOptions>();
 
         app.insert_resource(Raster::<Rgba8p>::with_clear(width, height))
+            .init_resource::<BitmapCache>()
             .add_system_to_stage(PixelsStage::Draw, blit);
     }
 }
 
 impl Bitmap {
-    pub fn new(bytes: &[u8]) -> Self {
+    fn new(bytes: &[u8]) -> Self {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();
         let mut buf = vec![0; reader.output_buffer_size()];
         let info = reader.next_frame(&mut buf).unwrap();
-        let raster = Raster::with_u8_buffer(info.width, info.height, &buf[..info.buffer_size()]);
+        let raster = Arc::new(Raster::with_u8_buffer(
+            info.width,
+            info.height,
+            &buf[..info.buffer_size()],
+        ));
 
         Self {
             tiled: false,
@@ -80,6 +92,25 @@ impl Iterator for TileIter {
         } else {
             None
         }
+    }
+}
+
+impl BitmapCache {
+    pub fn get_or_create(&mut self, key: &str, asset_server: &Res<AssetServer>) -> Bitmap {
+        self.map
+            .entry(key.to_string())
+            .or_insert_with(|| {
+                let io = asset_server
+                    .asset_io()
+                    .downcast_ref::<EmbeddedAssetIo>()
+                    .unwrap();
+
+                // TODO: This should probably return the Result.
+                let image = io.load_path_sync(Path::new(key)).unwrap();
+
+                Bitmap::new(&image)
+            })
+            .clone()
     }
 }
 

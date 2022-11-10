@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ahash = "0.8"
 bevy = { version = "0.8", default_features = false, features = ["bevy_asset"] }
 bevy_embedded_assets = "0.4"
 bevy_kira_audio = "0.12"
