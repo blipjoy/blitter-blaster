@@ -1,8 +1,9 @@
 use super::GameState;
-use crate::bitmap::BitmapCache;
+use crate::bitmap::{BitmapCache, Fade};
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::*;
+use pix::rgb::Rgba8p;
 
 pub struct TitlePlugin;
 
@@ -67,6 +68,17 @@ impl TitlePlugin {
             .spawn()
             .insert(bitmap)
             .insert_bundle(transform_bundle)
+            .insert(TitleScreen);
+
+        // Spawn the fade layer
+        let color = Rgba8p::new(0.0, 0.0, 0.0, 1.0);
+        let (bitmap, fade, transform_bundle) =
+            Fade::fade_in(1.0, options.width, options.height, color);
+        commands
+            .spawn()
+            .insert(bitmap)
+            .insert_bundle(transform_bundle)
+            .insert(fade)
             .insert(TitleScreen);
     }
 

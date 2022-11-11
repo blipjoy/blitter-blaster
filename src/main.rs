@@ -1,4 +1,4 @@
-use crate::bitmap::BitmapPlugin;
+use crate::bitmap::{BitmapPlugin, FadePlugin};
 use crate::config::{ConfigPlugin, ConfigState};
 use bevy::{prelude::*, window::WindowResizeConstraints};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
@@ -40,6 +40,7 @@ fn main() {
         .add_plugin(AudioPlugin)
         .add_plugin(PixelsPlugin)
         .add_plugin(BitmapPlugin)
+        .add_plugin(FadePlugin)
         .add_plugin(scenes::intro::IntroPlugin)
         .add_plugin(scenes::title::TitlePlugin)
         .add_state(scenes::GameState::Intro)

@@ -1,8 +1,9 @@
 use super::GameState;
-use crate::bitmap::{Bitmap, BitmapCache};
+use crate::bitmap::{Bitmap, BitmapCache, Fade};
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::*;
+use pix::rgb::Rgba8p;
 
 pub struct IntroPlugin;
 
@@ -12,6 +13,7 @@ struct IntroScreen;
 struct IntroState {
     anim: Vec<Anim>,
     timer: Timer,
+    fading: bool,
 }
 
 struct Anim {
@@ -50,6 +52,7 @@ impl IntroPlugin {
         mut state: ResMut<IntroState>,
         time: Res<Time>,
         audio: Res<Audio>,
+        options: Res<PixelsOptions>,
     ) {
         if state.timer.tick(time.delta()).finished() {
             if let Some(anim) = state.anim.pop() {
@@ -67,6 +70,18 @@ impl IntroPlugin {
             } else {
                 game_state.set(GameState::Title).unwrap();
             }
+        } else if !state.fading && state.anim.is_empty() && state.timer.percent() >= 0.5 {
+            state.fading = true;
+
+            let color = Rgba8p::new(0.0, 0.0, 0.0, 1.0);
+            let (bitmap, fade, transform_bundle) =
+                Fade::fade_out(1.0, options.width, options.height, color);
+            commands
+                .spawn()
+                .insert(bitmap)
+                .insert_bundle(transform_bundle)
+                .insert(fade)
+                .insert(IntroScreen);
         }
     }
 
@@ -95,6 +110,7 @@ impl IntroState {
                 loader.load(0.5, (hw - 40, 50), "logo.png", None),
             ],
             timer: Timer::from_seconds(0.0, false),
+            fading: false,
         }
     }
 }
