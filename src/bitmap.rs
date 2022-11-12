@@ -11,10 +11,15 @@ pub struct BitmapPlugin;
 
 #[derive(Clone, Component)]
 pub struct Bitmap {
-    tiled: bool,
     raster: Arc<Raster<Rgba8p>>,
 }
 
+/// Adding this component to a `Bitmap` will cause it to be treated as an infinitely tiled
+/// (repeated) background.
+#[derive(Component, Debug)]
+pub struct Tiled;
+
+#[derive(Debug)]
 struct TileIter {
     current: i32,
     step: i32,
@@ -41,7 +46,7 @@ impl BitmapPlugin {
     fn update(
         mut pixels_res: ResMut<PixelsResource>,
         mut camera: ResMut<Camera>,
-        query: Query<(&Bitmap, &Transform, Option<&ScreenSpace>)>,
+        query: Query<(&Bitmap, &Transform, Option<&Tiled>, Option<&ScreenSpace>)>,
     ) {
         let camera_transform = camera.transform();
         let raster = camera.raster_mut();
@@ -49,9 +54,9 @@ impl BitmapPlugin {
 
         // Sort by Z coordinate
         let mut bitmaps: Vec<_> = query.iter().collect();
-        bitmaps.sort_unstable_by_key(|(_, t, _)| (t.translation.z * 1000.0) as i64);
+        bitmaps.sort_unstable_by_key(|(_, t, _, _)| (t.translation.z * 1000.0) as i64);
 
-        for (bitmap, &transform, screen_space) in bitmaps {
+        for (bitmap, transform, tiled, screen_space) in bitmaps {
             let (x, y) = if screen_space.is_some() {
                 // In screen space, the destination region is relative to the origin.
                 let translation = transform.translation;
@@ -66,7 +71,7 @@ impl BitmapPlugin {
                 (camera_translation.x as i32, camera_translation.y as i32)
             };
 
-            if bitmap.tiled {
+            if tiled.is_some() {
                 // Iterate over all ranges required to fill the frame with the bitmap.
                 for y in bitmap.tile_cols(y) {
                     for x in bitmap.tile_rows(x) {
@@ -89,19 +94,13 @@ impl Bitmap {
     pub fn clear(width: u32, height: u32) -> Self {
         let raster = Arc::new(Raster::with_clear(width, height));
 
-        Self {
-            tiled: false,
-            raster,
-        }
+        Self { raster }
     }
 
     pub fn clear_color(width: u32, height: u32, color: Rgba8p) -> Self {
         let raster = Arc::new(Raster::with_color(width, height, color));
 
-        Self {
-            tiled: false,
-            raster,
-        }
+        Self { raster }
     }
 
     fn new(bytes: &[u8]) -> Self {
@@ -115,16 +114,7 @@ impl Bitmap {
             &buf[..info.buffer_size()],
         ));
 
-        Self {
-            tiled: false,
-            raster,
-        }
-    }
-
-    pub fn tiled(mut self, tiled: bool) -> Self {
-        self.tiled = tiled;
-
-        self
+        Self { raster }
     }
 
     fn tile_rows(&self, start: i32) -> impl Iterator<Item = i32> {

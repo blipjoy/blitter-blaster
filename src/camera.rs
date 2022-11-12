@@ -28,8 +28,9 @@ struct Viewport {
     size: Vec2,
 }
 
-/// Adding this component will cause the entity's [`Transform`] to be interpreted in screen space.
-#[derive(Component)]
+/// Adding this component to a `Bitmap` will cause the entity's [`Transform`] to be interpreted in
+/// screen space.
+#[derive(Component, Debug)]
 pub struct ScreenSpace;
 
 #[derive(Component, Debug)]

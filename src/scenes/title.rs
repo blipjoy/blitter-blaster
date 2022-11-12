@@ -1,6 +1,6 @@
 use super::GameState;
 use crate::{
-    bitmap::BitmapCache,
+    bitmap::{BitmapCache, Tiled},
     camera::{Camera, ScreenSpace},
 };
 use bevy::prelude::*;
@@ -53,8 +53,9 @@ impl TitlePlugin {
         let bitmap = cache.get_or_create("images/bg1.png", &asset_server);
         commands
             .spawn()
-            .insert(bitmap.tiled(true))
+            .insert(bitmap)
             .insert(transform)
+            .insert(Tiled)
             .insert(TitleScreen);
 
         // Spawn the title logo
