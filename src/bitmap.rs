@@ -23,6 +23,7 @@ pub struct Tiled;
 struct TileIter {
     current: i32,
     step: i32,
+    end: i32,
 }
 
 #[derive(Default)]
@@ -72,9 +73,12 @@ impl BitmapPlugin {
             };
 
             if tiled.is_some() {
+                let width = raster.width();
+                let height = raster.height();
+
                 // Iterate over all ranges required to fill the frame with the bitmap.
-                for y in bitmap.tile_cols(y) {
-                    for x in bitmap.tile_rows(x) {
+                for y in bitmap.tile_cols(y, height) {
+                    for x in bitmap.tile_rows(x, width) {
                         raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
                     }
                 }
@@ -117,20 +121,26 @@ impl Bitmap {
         Self { raster }
     }
 
-    fn tile_rows(&self, start: i32) -> impl Iterator<Item = i32> {
+    fn tile_rows(&self, start: i32, height: u32) -> impl Iterator<Item = i32> {
         let step = self.raster.height().try_into().unwrap();
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
+        let end = height.try_into().unwrap();
 
-        TileIter { current, step }
+        assert!(current < end);
+
+        TileIter { current, step, end }
     }
 
-    fn tile_cols(&self, start: i32) -> impl Iterator<Item = i32> {
+    fn tile_cols(&self, start: i32, width: u32) -> impl Iterator<Item = i32> {
         let step = self.raster.width().try_into().unwrap();
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
+        let end = width.try_into().unwrap();
 
-        TileIter { current, step }
+        assert!(current < end);
+
+        TileIter { current, step, end }
     }
 
     pub fn raster_mut(&mut self) -> &mut Arc<Raster<Rgba8p>> {
@@ -142,10 +152,10 @@ impl Iterator for TileIter {
     type Item = i32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let last = self.current;
-        self.current += self.step;
+        if self.current < self.end {
+            let last = self.current;
+            self.current += self.step;
 
-        if last < self.step {
             Some(last)
         } else {
             None
