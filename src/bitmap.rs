@@ -95,18 +95,6 @@ impl BitmapPlugin {
 }
 
 impl Bitmap {
-    pub fn clear(width: u32, height: u32) -> Self {
-        let raster = Arc::new(Raster::with_clear(width, height));
-
-        Self { raster }
-    }
-
-    pub fn clear_color(width: u32, height: u32, color: Rgba8p) -> Self {
-        let raster = Arc::new(Raster::with_color(width, height, color));
-
-        Self { raster }
-    }
-
     fn new(bytes: &[u8]) -> Self {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();
@@ -119,6 +107,24 @@ impl Bitmap {
         ));
 
         Self { raster }
+    }
+
+    pub fn with_clear(width: u32, height: u32) -> Self {
+        let raster = Arc::new(Raster::with_clear(width, height));
+
+        Self { raster }
+    }
+
+    pub fn with_color(width: u32, height: u32, color: Rgba8p) -> Self {
+        let raster = Arc::new(Raster::with_color(width, height, color));
+
+        Self { raster }
+    }
+
+    pub fn clear(&mut self, color: Rgba8p) {
+        let width = self.raster.width();
+        let height = self.raster.height();
+        self.raster = Arc::new(Raster::with_color(width, height, color));
     }
 
     fn tile_rows(&self, start: i32, height: u32) -> impl Iterator<Item = i32> {
@@ -141,10 +147,6 @@ impl Bitmap {
         assert!(current < end);
 
         TileIter { current, step, end }
-    }
-
-    pub fn raster_mut(&mut self) -> &mut Arc<Raster<Rgba8p>> {
-        &mut self.raster
     }
 }
 

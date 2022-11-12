@@ -7,7 +7,6 @@ use pix::{
     rgb::Rgba8p,
     Raster,
 };
-use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct CameraPlugin;
@@ -92,7 +91,7 @@ impl Camera {
     /// I.e. the entire viewport is cleared to the given base color which fades to transparent over
     /// time.
     pub fn fade_in(time_seconds: f32, width: u32, height: u32, base_color: Rgba8p) -> FadeBundle {
-        let bitmap = Bitmap::clear_color(width, height, base_color);
+        let bitmap = Bitmap::with_color(width, height, base_color);
 
         let timer = Timer::from_seconds(time_seconds, false);
         let from = 1.0;
@@ -119,7 +118,7 @@ impl Camera {
     ///
     /// I.e. the entire viewport is fades to the given base color over time.
     pub fn fade_out(time_seconds: f32, width: u32, height: u32, base_color: Rgba8p) -> FadeBundle {
-        let bitmap = Bitmap::clear(width, height);
+        let bitmap = Bitmap::with_clear(width, height);
 
         let timer = Timer::from_seconds(time_seconds, false);
         let from = 0.0;
@@ -172,9 +171,7 @@ impl FadePlugin {
                 *chan = *chan * alpha;
             }
 
-            // Force-update the bitmap raster.
-            let raster = bitmap.raster_mut();
-            *raster = Arc::new(Raster::with_color(raster.width(), raster.height(), color));
+            bitmap.clear(color);
         }
     }
 }
