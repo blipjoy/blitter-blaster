@@ -132,8 +132,6 @@ impl Bitmap {
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
 
-        assert!(current <= step);
-
         TileIter { current, step }
     }
 
@@ -141,8 +139,6 @@ impl Bitmap {
         let step = self.raster.width().try_into().unwrap();
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
-
-        assert!(current <= step);
 
         TileIter { current, step }
     }
