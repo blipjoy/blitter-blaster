@@ -1,8 +1,12 @@
-use crate::engine::camera::{Camera, ScreenSpace};
-use ahash::RandomState;
+use crate::engine::{
+    camera::{Camera, ScreenSpace},
+    collision::BvhResource,
+};
+use ahash::{HashSet, HashSetExt as _, RandomState};
 use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetIo;
 use bevy_pixels::prelude::*;
+use bvh_arena::volumes::Aabb;
 use pix::{ops::SrcOver, rgb::Rgba8p, Raster};
 use std::{collections::HashMap, io::Cursor, path::Path, sync::Arc};
 
@@ -38,6 +42,23 @@ impl Plugin for BitmapPlugin {
     }
 }
 
+impl Camera {
+    fn to_aabb(&self) -> Aabb<2> {
+        let pos = self.transform().translation.truncate();
+        let size = *self.size();
+
+        Aabb::from_min_max(pos, pos + size)
+    }
+}
+
+type DrawableBitmap<'a> = (
+    Entity,
+    &'a Bitmap,
+    &'a Transform,
+    Option<&'a Tiled>,
+    Option<&'a ScreenSpace>,
+);
+
 impl BitmapPlugin {
     /// Rasterizes all [`Bitmap`]s in the world.
     ///
@@ -47,17 +68,39 @@ impl BitmapPlugin {
     fn update(
         mut pixels_res: ResMut<PixelsResource>,
         mut camera: ResMut<Camera>,
-        query: Query<(&Bitmap, &Transform, Option<&Tiled>, Option<&ScreenSpace>)>,
+        bvh: Res<BvhResource>,
+        bitmaps: Query<DrawableBitmap>,
+        tiled_bitmaps: Query<DrawableBitmap, With<Tiled>>,
+        screen_bitmaps: Query<DrawableBitmap, With<ScreenSpace>>,
     ) {
         let camera_transform = camera.transform();
-        let raster = camera.raster_mut();
-        raster.clear();
+        let camera_aabb = camera.to_aabb();
+        let camera_raster = camera.raster_mut();
+
+        // Clear the camera.
+        camera_raster.clear();
+
+        // Use a HashSet to de-dupe entities.
+        let mut entities = HashSet::new();
+
+        // Find all Bitmap entities that are within the viewport.
+        bvh.for_each_overlaps(&camera_aabb, |&entity| {
+            entities.insert(entity);
+        });
+
+        // Tiled and screen-space bitmaps are always selected.
+        entities.extend(tiled_bitmaps.into_iter().map(|query| query.0));
+        entities.extend(screen_bitmaps.into_iter().map(|query| query.0));
 
         // Sort by Z coordinate
-        let mut bitmaps: Vec<_> = query.iter().collect();
-        bitmaps.sort_unstable_by_key(|(_, t, _, _)| (t.translation.z * 1000.0) as i64);
+        let mut bitmaps: Vec<_> = entities
+            .into_iter()
+            .map(|entity| bitmaps.get(entity).unwrap())
+            .collect();
+        bitmaps.sort_unstable_by_key(|query| (query.2.translation.z * 1000.0) as i64);
 
-        for (bitmap, transform, tiled, screen_space) in bitmaps {
+        // Composite each bitmap to the camera.
+        for (_, bitmap, transform, tiled, screen_space) in bitmaps {
             let (x, y) = if screen_space.is_some() {
                 // In screen space, the destination region is relative to the origin.
                 let translation = transform.translation;
@@ -73,24 +116,25 @@ impl BitmapPlugin {
             };
 
             if tiled.is_some() {
-                let width = raster.width();
-                let height = raster.height();
+                let width = camera_raster.width();
+                let height = camera_raster.height();
 
                 // Iterate over all ranges required to fill the frame with the bitmap.
                 for x in bitmap.tile_cols(x, width) {
                     for y in bitmap.tile_rows(y, height) {
-                        raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
+                        camera_raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
                     }
                 }
             } else {
-                raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
+                camera_raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
             }
         }
 
+        // Copy the camera to `Pixels`.
         pixels_res
             .pixels
             .get_frame_mut()
-            .copy_from_slice(raster.as_u8_slice());
+            .copy_from_slice(camera_raster.as_u8_slice());
     }
 }
 
@@ -122,13 +166,19 @@ impl Bitmap {
     }
 
     pub fn clear(&mut self, color: Rgba8p) {
-        let width = self.raster.width();
-        let height = self.raster.height();
-        self.raster = Arc::new(Raster::with_color(width, height, color));
+        self.raster = Arc::new(Raster::with_color(self.width(), self.height(), color));
+    }
+
+    pub fn width(&self) -> u32 {
+        self.raster.width()
+    }
+
+    pub fn height(&self) -> u32 {
+        self.raster.height()
     }
 
     fn tile_rows(&self, start: i32, height: u32) -> impl Iterator<Item = i32> {
-        let step = self.raster.height().try_into().unwrap();
+        let step = self.height().try_into().unwrap();
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
         let end = height.try_into().unwrap();
@@ -137,7 +187,7 @@ impl Bitmap {
     }
 
     fn tile_cols(&self, start: i32, width: u32) -> impl Iterator<Item = i32> {
-        let step = self.raster.width().try_into().unwrap();
+        let step = self.width().try_into().unwrap();
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
         let end = width.try_into().unwrap();

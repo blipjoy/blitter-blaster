@@ -1,16 +1,11 @@
+use crate::engine::bitmap::Bitmap;
 use bevy::prelude::*;
 use bvh_arena::{volumes::Aabb, Bvh};
 
-type BvhResource = Bvh<Entity, Aabb<2>>;
+pub type BvhResource = Bvh<Entity, Aabb<2>>;
 
 #[derive(Debug)]
 pub struct CollisionPlugin;
-
-#[derive(Component, Debug)]
-pub struct Volume {
-    min: Vec2,
-    max: Vec2,
-}
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
@@ -20,23 +15,20 @@ impl Plugin for CollisionPlugin {
 }
 
 impl CollisionPlugin {
-    fn update(mut bvh: ResMut<BvhResource>, query: Query<(Entity, &Transform, &Volume)>) {
+    fn update(mut bvh: ResMut<BvhResource>, query: Query<(Entity, &Transform, &Bitmap)>) {
         bvh.clear();
 
-        for (entity, &transform, volume) in &query {
-            bvh.insert(entity, volume.to_aabb(transform));
+        for (entity, &transform, bitmap) in &query {
+            bvh.insert(entity, bitmap.to_aabb(transform));
         }
     }
 }
 
-impl Volume {
-    pub fn new(min: Vec2, max: Vec2) -> Self {
-        Self { min, max }
-    }
-
+impl Bitmap {
     fn to_aabb(&self, transform: Transform) -> Aabb<2> {
         let pos = transform.translation.truncate();
+        let size = Vec2::new(self.width() as f32, self.height() as f32);
 
-        Aabb::from_min_max(pos + self.min, pos + self.max)
+        Aabb::from_min_max(pos, pos + size)
     }
 }
