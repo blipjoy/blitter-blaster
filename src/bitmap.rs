@@ -77,8 +77,8 @@ impl BitmapPlugin {
                 let height = raster.height();
 
                 // Iterate over all ranges required to fill the frame with the bitmap.
-                for y in bitmap.tile_cols(y, height) {
-                    for x in bitmap.tile_rows(x, width) {
+                for x in bitmap.tile_cols(x, width) {
+                    for y in bitmap.tile_rows(y, height) {
                         raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
                     }
                 }
@@ -133,8 +133,6 @@ impl Bitmap {
         let current = if current > 0 { current - step } else { current };
         let end = height.try_into().unwrap();
 
-        assert!(current < end);
-
         TileIter { current, step, end }
     }
 
@@ -143,8 +141,6 @@ impl Bitmap {
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
         let end = width.try_into().unwrap();
-
-        assert!(current < end);
 
         TileIter { current, step, end }
     }

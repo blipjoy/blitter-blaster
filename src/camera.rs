@@ -92,17 +92,12 @@ impl Camera {
     /// time.
     pub fn fade_in(time_seconds: f32, width: u32, height: u32, base_color: Rgba8p) -> FadeBundle {
         let bitmap = Bitmap::with_color(width, height, base_color);
-
-        let timer = Timer::from_seconds(time_seconds, false);
-        let from = 1.0;
-        let to = 0.0;
         let fade = Fade {
-            timer,
-            from,
-            to,
+            timer: Timer::from_seconds(time_seconds, false),
+            from: 1.0,
+            to: 0.0,
             base_color,
         };
-
         let transform = Transform::from_xyz(0.0, 0.0, std::f32::INFINITY);
         let screen_space = ScreenSpace;
 
@@ -119,17 +114,12 @@ impl Camera {
     /// I.e. the entire viewport is fades to the given base color over time.
     pub fn fade_out(time_seconds: f32, width: u32, height: u32, base_color: Rgba8p) -> FadeBundle {
         let bitmap = Bitmap::with_clear(width, height);
-
-        let timer = Timer::from_seconds(time_seconds, false);
-        let from = 0.0;
-        let to = 1.0;
         let fade = Fade {
-            timer,
-            from,
-            to,
+            timer: Timer::from_seconds(time_seconds, false),
+            from: 0.0,
+            to: 1.0,
             base_color,
         };
-
         let transform = Transform::from_xyz(0.0, 0.0, std::f32::INFINITY);
         let screen_space = ScreenSpace;
 
