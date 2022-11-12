@@ -1,14 +1,13 @@
-use crate::bitmap::{BitmapPlugin, FadePlugin};
-use crate::config::{ConfigPlugin, ConfigState};
 use bevy::{prelude::*, window::WindowResizeConstraints};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::prelude::*;
-
-mod bitmap;
-mod config;
-mod consts;
-mod scenes;
+use odonata::{
+    camera::CameraPlugin,
+    config::{ConfigPlugin, ConfigState},
+    consts::APP_NAME,
+    scenes::{GameState, ScenePlugin},
+};
 
 fn main() {
     let config = ConfigState::default();
@@ -19,7 +18,7 @@ fn main() {
 
     App::new()
         .insert_resource(WindowDescriptor {
-            title: consts::APP_NAME.to_string(),
+            title: APP_NAME.to_string(),
             width: window_width,
             height: window_height,
             resize_constraints: WindowResizeConstraints {
@@ -37,13 +36,10 @@ fn main() {
             group.add_before::<bevy::asset::AssetPlugin, _>(EmbeddedAssetPlugin)
         })
         .add_plugin(ConfigPlugin)
+        .add_plugin(CameraPlugin)
         .add_plugin(AudioPlugin)
-        .add_plugin(PixelsPlugin)
-        .add_plugin(BitmapPlugin)
-        .add_plugin(FadePlugin)
-        .add_plugin(scenes::intro::IntroPlugin)
-        .add_plugin(scenes::title::TitlePlugin)
-        .add_state(scenes::GameState::Intro)
+        .add_plugin(ScenePlugin)
+        .add_state(GameState::Intro)
         .add_system(bevy::window::close_on_esc)
         .run();
 }

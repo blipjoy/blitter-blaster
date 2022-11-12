@@ -1,14 +1,9 @@
+use crate::camera::{Camera, ScreenSpace};
 use ahash::RandomState;
 use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetIo;
 use bevy_pixels::prelude::*;
-use pix::{
-    chan::{Ch8, Channel as _},
-    el::Pixel,
-    ops::SrcOver,
-    rgb::Rgba8p,
-    Raster,
-};
+use pix::{ops::SrcOver, rgb::Rgba8p, Raster};
 use std::{collections::HashMap, io::Cursor, path::Path, sync::Arc};
 
 #[derive(Debug)]
@@ -23,7 +18,6 @@ pub struct Bitmap {
 struct TileIter {
     current: i32,
     step: i32,
-    end: i32,
 }
 
 #[derive(Default)]
@@ -31,60 +25,56 @@ pub struct BitmapCache {
     map: HashMap<String, Bitmap, RandomState>,
 }
 
-#[derive(Debug)]
-pub struct FadePlugin;
-
-#[derive(Component, Debug)]
-pub struct Fade {
-    timer: Timer,
-    from: f32,
-    to: f32,
-    base_color: Rgba8p,
-}
-
 impl Plugin for BitmapPlugin {
     fn build(&self, app: &mut App) {
-        let PixelsOptions { width, height } = *app.world.resource::<PixelsOptions>();
-
-        app.insert_resource(Raster::<Rgba8p>::with_clear(width, height))
-            .init_resource::<BitmapCache>()
+        app.init_resource::<BitmapCache>()
             .add_system_to_stage(PixelsStage::Draw, Self::update);
     }
 }
 
 impl BitmapPlugin {
+    /// Rasterizes all [`Bitmap`]s in the world.
+    ///
+    /// Each [`Bitmap`] requires a [`Transform`] (to position it), and may optionally include a
+    /// [`ScreenSpace`] component to control whether the position is affected by the viewport
+    /// position. The [`Camera`] resource provides the viewport.
     fn update(
         mut pixels_res: ResMut<PixelsResource>,
-        mut raster: ResMut<Raster<Rgba8p>>,
-        query: Query<(&Bitmap, &Transform)>,
+        mut camera: ResMut<Camera>,
+        query: Query<(&Bitmap, &Transform, Option<&ScreenSpace>)>,
     ) {
+        let camera_transform = camera.transform();
+        let raster = camera.raster_mut();
         raster.clear();
 
         // Sort by Z coordinate
         let mut bitmaps: Vec<_> = query.iter().collect();
-        bitmaps.sort_unstable_by_key(|(_, t)| (t.translation.z * 1000.0) as i64);
+        bitmaps.sort_unstable_by_key(|(_, t, _)| (t.translation.z * 1000.0) as i64);
 
-        for (bitmap, transform) in &bitmaps {
+        for (bitmap, &transform, screen_space) in bitmaps {
+            let (x, y) = if screen_space.is_some() {
+                // In screen space, the destination region is relative to the origin.
+                let translation = transform.translation;
+
+                (translation.x as i32, translation.y as i32)
+            } else {
+                // In world space, the destination region is relative to the camera viewport.
+                let z = transform.translation.z;
+                let z = if z.is_finite() { z } else { 1.0 };
+                let camera_translation = transform.translation - camera_transform.translation * z;
+
+                (camera_translation.x as i32, camera_translation.y as i32)
+            };
+
             if bitmap.tiled {
                 // Iterate over all ranges required to fill the frame with the bitmap.
-
-                let x_start = transform.translation.x as i32;
-                let x_end = raster.width().try_into().unwrap();
-                let y_start = transform.translation.y as i32;
-                let y_end = raster.height().try_into().unwrap();
-
-                for y in bitmap.tile_cols(y_start, y_end) {
-                    for x in bitmap.tile_rows(x_start, x_end) {
+                for y in bitmap.tile_cols(y) {
+                    for x in bitmap.tile_rows(x) {
                         raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
                     }
                 }
             } else {
-                let to = (
-                    transform.translation.x as i32,
-                    transform.translation.y as i32,
-                );
-
-                raster.composite_raster(to, &bitmap.raster, (), SrcOver);
+                raster.composite_raster((x, y), &bitmap.raster, (), SrcOver);
             }
         }
 
@@ -96,6 +86,24 @@ impl BitmapPlugin {
 }
 
 impl Bitmap {
+    pub fn clear(width: u32, height: u32) -> Self {
+        let raster = Arc::new(Raster::with_clear(width, height));
+
+        Self {
+            tiled: false,
+            raster,
+        }
+    }
+
+    pub fn clear_color(width: u32, height: u32, color: Rgba8p) -> Self {
+        let raster = Arc::new(Raster::with_color(width, height, color));
+
+        Self {
+            tiled: false,
+            raster,
+        }
+    }
+
     fn new(bytes: &[u8]) -> Self {
         let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().unwrap();
@@ -119,24 +127,28 @@ impl Bitmap {
         self
     }
 
-    fn tile_rows(&self, start: i32, end: i32) -> impl Iterator<Item = i32> {
-        let step = self.raster.width().try_into().unwrap();
-        let current = start % step;
-        let current = if current > 0 { current - step } else { current };
-
-        assert!(current <= end);
-
-        TileIter { current, step, end }
-    }
-
-    fn tile_cols(&self, start: i32, end: i32) -> impl Iterator<Item = i32> {
+    fn tile_rows(&self, start: i32) -> impl Iterator<Item = i32> {
         let step = self.raster.height().try_into().unwrap();
         let current = start % step;
         let current = if current > 0 { current - step } else { current };
 
-        assert!(current <= end);
+        assert!(current <= step);
 
-        TileIter { current, step, end }
+        TileIter { current, step }
+    }
+
+    fn tile_cols(&self, start: i32) -> impl Iterator<Item = i32> {
+        let step = self.raster.width().try_into().unwrap();
+        let current = start % step;
+        let current = if current > 0 { current - step } else { current };
+
+        assert!(current <= step);
+
+        TileIter { current, step }
+    }
+
+    pub fn raster_mut(&mut self) -> &mut Arc<Raster<Rgba8p>> {
+        &mut self.raster
     }
 }
 
@@ -147,7 +159,7 @@ impl Iterator for TileIter {
         let last = self.current;
         self.current += self.step;
 
-        if last <= self.end {
+        if last < self.step {
             Some(last)
         } else {
             None
@@ -171,99 +183,5 @@ impl BitmapCache {
                 Bitmap::new(&image)
             })
             .clone()
-    }
-}
-
-impl Plugin for FadePlugin {
-    fn build(&self, app: &mut App) {
-        app.add_system(Self::update);
-    }
-}
-
-impl FadePlugin {
-    fn update(
-        mut commands: Commands,
-        mut query: Query<(Entity, &mut Bitmap, &mut Fade)>,
-        time: Res<Time>,
-    ) {
-        for (entity, mut bitmap, mut fade) in query.iter_mut() {
-            if fade.timer.tick(time.delta()).finished() {
-                commands.entity(entity).despawn_recursive();
-            } else {
-                let mut color = fade.base_color;
-
-                // Apply the fade to the color (pre-multiplied alpha).
-                let alpha =
-                    Ch8::from(fade.from).lerp(Ch8::from(fade.to), Ch8::from(fade.timer.percent()));
-                for chan in color.channels_mut() {
-                    *chan = *chan * alpha;
-                }
-
-                // Force-update the bitmap raster.
-                bitmap.raster = Arc::new(Raster::with_color(
-                    bitmap.raster.width(),
-                    bitmap.raster.height(),
-                    color,
-                ));
-            }
-        }
-    }
-}
-
-impl Fade {
-    pub fn fade_in(
-        time_seconds: f32,
-        width: u32,
-        height: u32,
-        base_color: Rgba8p,
-    ) -> (Bitmap, Self, TransformBundle) {
-        let raster = Arc::new(Raster::with_color(width, height, base_color));
-        let bitmap = Bitmap {
-            tiled: false,
-            raster,
-        };
-
-        let timer = Timer::from_seconds(time_seconds, false);
-        let from = 1.0;
-        let to = 0.0;
-        let fade = Self {
-            timer,
-            from,
-            to,
-            base_color,
-        };
-
-        let transform = Transform::from_xyz(0.0, 0.0, std::f32::INFINITY);
-        let transform_bundle = TransformBundle::from_transform(transform);
-
-        (bitmap, fade, transform_bundle)
-    }
-
-    pub fn fade_out(
-        time_seconds: f32,
-        width: u32,
-        height: u32,
-        base_color: Rgba8p,
-    ) -> (Bitmap, Self, TransformBundle) {
-        let raster = Arc::new(Raster::with_clear(width, height));
-        let bitmap = Bitmap {
-            tiled: false,
-            raster,
-        };
-
-        let timer = Timer::from_seconds(time_seconds, false);
-        let from = 0.0;
-        let to = 1.0;
-        let fade = Self {
-            timer,
-            from,
-            to,
-            base_color,
-        };
-
-        let transform = Transform::from_xyz(0.0, 0.0, std::f32::INFINITY);
-        let transform_bundle = TransformBundle::from_transform(transform);
-
-        (bitmap, fade, transform_bundle)
     }
 }

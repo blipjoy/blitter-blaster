@@ -1,5 +1,8 @@
 use super::GameState;
-use crate::bitmap::{Bitmap, BitmapCache, Fade};
+use crate::{
+    bitmap::{Bitmap, BitmapCache},
+    camera::Camera,
+};
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::*;
@@ -18,7 +21,7 @@ struct IntroState {
 
 struct Anim {
     duration: f32,
-    pos: TransformBundle,
+    pos: Transform,
     image: Bitmap,
     sfx: Option<Handle<AudioSource>>,
 }
@@ -59,7 +62,7 @@ impl IntroPlugin {
                 commands
                     .spawn()
                     .insert(anim.image)
-                    .insert_bundle(anim.pos)
+                    .insert(anim.pos)
                     .insert(IntroScreen);
 
                 if let Some(sfx) = anim.sfx {
@@ -74,13 +77,10 @@ impl IntroPlugin {
             state.fading = true;
 
             let color = Rgba8p::new(0.0, 0.0, 0.0, 1.0);
-            let (bitmap, fade, transform_bundle) =
-                Fade::fade_out(1.0, options.width, options.height, color);
+            let fade_bundle = Camera::fade_out(1.0, options.width, options.height, color);
             commands
                 .spawn()
-                .insert(bitmap)
-                .insert_bundle(transform_bundle)
-                .insert(fade)
+                .insert_bundle(fade_bundle)
                 .insert(IntroScreen);
         }
     }
@@ -124,8 +124,7 @@ impl<'a> AnimLoader<'a> {
     }
 
     fn load(&mut self, duration: f32, pos: (i32, i32), image: &str, sfx: Option<&str>) -> Anim {
-        let transform = Transform::from_xyz(pos.0 as f32, pos.1 as f32, 0.0);
-        let pos = TransformBundle::from_transform(transform);
+        let pos = Transform::from_xyz(pos.0 as f32, pos.1 as f32, 1.0);
         let image = self
             .cache
             .get_or_create(&format!("images/{image}"), &self.asset_server);

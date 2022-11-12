@@ -1,5 +1,8 @@
 use super::GameState;
-use crate::bitmap::{BitmapCache, Fade};
+use crate::{
+    bitmap::BitmapCache,
+    camera::{Camera, ScreenSpace},
+};
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::*;
@@ -9,9 +12,6 @@ pub struct TitlePlugin;
 
 #[derive(Component)]
 struct TitleScreen;
-
-#[derive(Component)]
-struct Background;
 
 struct Motion {
     angle: f32,
@@ -50,51 +50,38 @@ impl TitlePlugin {
 
         // Spawn the background
         let transform = Transform::from_xyz(0.0, 0.0, 1.0);
-        let transform_bundle = TransformBundle::from_transform(transform);
         let bitmap = cache.get_or_create("images/bg1.png", &asset_server);
         commands
             .spawn()
             .insert(bitmap.tiled(true))
-            .insert_bundle(transform_bundle)
-            .insert(Background)
+            .insert(transform)
             .insert(TitleScreen);
 
         // Spawn the title logo
         let x = (options.width / 2) as f32;
         let transform = Transform::from_xyz(x - 120.0, 65.0, 2.0);
-        let transform_bundle = TransformBundle::from_transform(transform);
         let bitmap = cache.get_or_create("images/odonata.png", &asset_server);
         commands
             .spawn()
             .insert(bitmap)
-            .insert_bundle(transform_bundle)
+            .insert(transform)
+            .insert(ScreenSpace)
             .insert(TitleScreen);
 
         // Spawn the fade layer
         let color = Rgba8p::new(0.0, 0.0, 0.0, 1.0);
-        let (bitmap, fade, transform_bundle) =
-            Fade::fade_in(1.0, options.width, options.height, color);
+        let fade_bundle = Camera::fade_in(1.0, options.width, options.height, color);
         commands
             .spawn()
-            .insert(bitmap)
-            .insert_bundle(transform_bundle)
-            .insert(fade)
+            .insert_bundle(fade_bundle)
             .insert(TitleScreen);
     }
 
-    fn update(
-        time: Res<Time>,
-        mut query: Query<&mut Transform, With<Background>>,
-        mut motion: ResMut<Motion>,
-    ) {
+    fn update(time: Res<Time>, mut camera: ResMut<Camera>, mut motion: ResMut<Motion>) {
         let delta = time.delta().as_secs_f32();
-
         let velocity = Quat::from_rotation_z(motion.angle) * Vec3::X * motion.magnitude;
 
-        for mut transform in &mut query {
-            let z = transform.translation.z;
-            transform.translation -= velocity * delta * z;
-        }
+        camera.transform_mut().translation += velocity * delta;
 
         motion.angle += 0.000033;
     }
