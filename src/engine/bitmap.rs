@@ -2,7 +2,7 @@ use crate::engine::{
     camera::{Camera, ScreenSpace},
     collision::BvhResource,
 };
-use ahash::{HashSet, HashSetExt as _, RandomState};
+use ahash::{HashSet, RandomState};
 use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetIo;
 use bevy_pixels::prelude::*;
@@ -51,12 +51,11 @@ impl Camera {
     }
 }
 
-type DrawableBitmap<'a> = (
-    Entity,
-    &'a Bitmap,
-    &'a Transform,
-    Option<&'a Tiled>,
-    Option<&'a ScreenSpace>,
+/// `ScreenEntities` are always drawn because they are either tiled or drawn in screen space.
+type ScreenEntities = (
+    With<Bitmap>,
+    With<Transform>,
+    Or<(With<Tiled>, With<ScreenSpace>)>,
 );
 
 impl BitmapPlugin {
@@ -69,9 +68,8 @@ impl BitmapPlugin {
         mut pixels_res: ResMut<PixelsResource>,
         mut camera: ResMut<Camera>,
         bvh: Res<BvhResource>,
-        bitmaps: Query<DrawableBitmap>,
-        tiled_bitmaps: Query<DrawableBitmap, With<Tiled>>,
-        screen_bitmaps: Query<DrawableBitmap, With<ScreenSpace>>,
+        query: Query<(&Bitmap, &Transform, Option<&Tiled>, Option<&ScreenSpace>)>,
+        screen_entities: Query<Entity, ScreenEntities>,
     ) {
         let camera_transform = camera.transform();
         let camera_aabb = camera.to_aabb();
@@ -80,27 +78,23 @@ impl BitmapPlugin {
         // Clear the camera.
         camera_raster.clear();
 
-        // Use a HashSet to de-dupe entities.
-        let mut entities = HashSet::new();
+        // Use a HashSet to de-dupe entities. `ScreenEntities` are always drawn.
+        let mut entities = HashSet::from_iter(&screen_entities);
 
-        // Find all Bitmap entities that are within the viewport.
+        // Find all `Bitmap` entities that are within the viewport.
         bvh.for_each_overlaps(&camera_aabb, |&entity| {
             entities.insert(entity);
         });
 
-        // Tiled and screen-space bitmaps are always selected.
-        entities.extend(tiled_bitmaps.into_iter().map(|query| query.0));
-        entities.extend(screen_bitmaps.into_iter().map(|query| query.0));
-
         // Sort by Z coordinate
         let mut bitmaps: Vec<_> = entities
             .into_iter()
-            .map(|entity| bitmaps.get(entity).unwrap())
+            .map(|entity| query.get(entity).unwrap())
             .collect();
-        bitmaps.sort_unstable_by_key(|query| (query.2.translation.z * 1000.0) as i64);
+        bitmaps.sort_unstable_by_key(|query| (query.1.translation.z * 1000.0) as i64);
 
         // Composite each bitmap to the camera.
-        for (_, bitmap, transform, tiled, screen_space) in bitmaps {
+        for (bitmap, transform, tiled, screen_space) in bitmaps {
             let (x, y) = if screen_space.is_some() {
                 // In screen space, the destination region is relative to the origin.
                 let translation = transform.translation;

@@ -98,7 +98,7 @@ impl Camera {
             to: 0.0,
             base_color,
         };
-        let transform = Transform::from_xyz(0.0, 0.0, std::f32::INFINITY);
+        let transform = Transform::from_xyz(0.0, 0.0, f32::INFINITY);
         let screen_space = ScreenSpace;
 
         FadeBundle {
@@ -120,7 +120,7 @@ impl Camera {
             to: 1.0,
             base_color,
         };
-        let transform = Transform::from_xyz(0.0, 0.0, std::f32::INFINITY);
+        let transform = Transform::from_xyz(0.0, 0.0, f32::INFINITY);
         let screen_space = ScreenSpace;
 
         FadeBundle {
