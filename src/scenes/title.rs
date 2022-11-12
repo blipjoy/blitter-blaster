@@ -1,5 +1,5 @@
 use super::GameState;
-use crate::{
+use crate::engine::{
     bitmap::{BitmapCache, Tiled},
     camera::{Camera, ScreenSpace},
 };

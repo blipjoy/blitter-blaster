@@ -3,9 +3,8 @@ use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pixels::prelude::*;
 use odonata::{
-    camera::CameraPlugin,
-    config::{ConfigPlugin, ConfigState},
     consts::APP_NAME,
+    engine::{config::ConfigState, EnginePlugin},
     scenes::{GameState, ScenePlugin},
 };
 
@@ -35,8 +34,7 @@ fn main() {
         .add_plugins_with(DefaultPlugins, |group| {
             group.add_before::<bevy::asset::AssetPlugin, _>(EmbeddedAssetPlugin)
         })
-        .add_plugin(ConfigPlugin)
-        .add_plugin(CameraPlugin)
+        .add_plugin(EnginePlugin)
         .add_plugin(AudioPlugin)
         .add_plugin(ScenePlugin)
         .add_state(GameState::Intro)

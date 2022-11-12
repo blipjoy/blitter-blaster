@@ -1,4 +1,4 @@
-use crate::camera::{Camera, ScreenSpace};
+use crate::engine::camera::{Camera, ScreenSpace};
 use ahash::RandomState;
 use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetIo;

@@ -1,4 +1,4 @@
-use crate::bitmap::{Bitmap, BitmapPlugin};
+use crate::engine::bitmap::{Bitmap, BitmapPlugin};
 use bevy::prelude::*;
 use bevy_pixels::*;
 use pix::{
