@@ -15,10 +15,10 @@ impl Plugin for CollisionPlugin {
 }
 
 impl CollisionPlugin {
-    fn update(mut bvh: ResMut<BvhResource>, query: Query<(Entity, &Transform, &Bitmap)>) {
+    fn update(mut bvh: ResMut<BvhResource>, query: Query<(Entity, &Bitmap, &Transform)>) {
         bvh.clear();
 
-        for (entity, &transform, bitmap) in &query {
+        for (entity, bitmap, &transform) in &query {
             bvh.insert(entity, bitmap.to_aabb(transform));
         }
     }
