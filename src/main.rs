@@ -3,7 +3,7 @@ use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_kira_audio::prelude::*;
 use odonata::{
     consts::APP_NAME,
-    engine::{config::ConfigState, EnginePlugin},
+    engine::{ConfigState, EnginePlugin},
     scenes::{GameState, ScenePlugin},
 };
 

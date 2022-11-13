@@ -1,16 +1,13 @@
 use super::GameState;
-use crate::engine::{
-    bitmap::{Bitmap, BitmapCache},
-    camera::Camera,
-    config::ConfigState,
-};
+use crate::engine::{Bitmap, BitmapCache, Camera, ConfigState};
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use pix::rgb::Rgba8p;
 
-pub struct IntroPlugin;
+#[derive(Debug)]
+pub(crate) struct IntroPlugin;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 struct IntroScreen;
 
 #[derive(Resource)]

@@ -1,4 +1,4 @@
-use crate::engine::bitmap::Bitmap;
+use crate::engine::Bitmap;
 use bevy::prelude::*;
 use bvh_arena::{volumes::Aabb, Bvh};
 
@@ -8,7 +8,7 @@ pub struct BvhResource {
 }
 
 #[derive(Debug)]
-pub struct CollisionPlugin;
+pub(crate) struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {

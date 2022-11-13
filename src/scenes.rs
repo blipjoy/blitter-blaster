@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-pub mod intro;
-pub mod title;
+mod intro;
+mod title;
 
 #[derive(Debug)]
 pub struct ScenePlugin;

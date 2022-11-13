@@ -1,19 +1,16 @@
 use super::GameState;
-use crate::engine::{
-    bitmap::{BitmapCache, Tiled},
-    camera::{Camera, ScreenSpace},
-    config::ConfigState,
-};
+use crate::engine::{BitmapCache, Camera, ConfigState, ScreenSpace, Tiled};
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 use pix::rgb::Rgba8p;
 
-pub struct TitlePlugin;
+#[derive(Debug)]
+pub(crate) struct TitlePlugin;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 struct TitleScreen;
 
-#[derive(Resource)]
+#[derive(Debug, Resource)]
 struct Motion {
     angle: f32,
     magnitude: f32,

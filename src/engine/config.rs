@@ -1,4 +1,4 @@
-use crate::consts::{APP_NAME, HEIGHT, WIDTH_STANDARD, WIDTH_ULTRAWIDE, WIDTH_WIDE};
+use crate::consts::*;
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     log::LogPlugin,
@@ -8,7 +8,7 @@ use bevy::{
 use directories::ProjectDirs;
 
 #[derive(Debug)]
-pub struct ConfigPlugin;
+pub(crate) struct ConfigPlugin;
 
 #[derive(Debug, Resource)]
 pub struct ConfigState {

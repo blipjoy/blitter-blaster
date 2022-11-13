@@ -1,7 +1,4 @@
-use crate::engine::{
-    bitmap::{Bitmap, BitmapPlugin},
-    config::ConfigState,
-};
+use crate::engine::{Bitmap, BitmapPlugin, ConfigState};
 use bevy::prelude::*;
 use bevy_pixels::*;
 use pix::{
@@ -12,10 +9,10 @@ use pix::{
 };
 
 #[derive(Debug)]
-pub struct CameraPlugin;
+pub(crate) struct CameraPlugin;
 
 #[derive(Debug)]
-pub struct FadePlugin;
+pub(crate) struct FadePlugin;
 
 /// The `Camera` resource offers methods for getting and setting the viewport transformation matrix
 /// and size, and for accessing the internal pixel rasterizer.

@@ -1,7 +1,4 @@
-use crate::engine::{
-    camera::{Camera, ScreenSpace},
-    collision::BvhResource,
-};
+use crate::engine::{BvhResource, Camera, ScreenSpace};
 use ahash::{HashSet, RandomState};
 use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetIo;
@@ -11,7 +8,7 @@ use pix::{ops::SrcOver, rgb::Rgba8p, Raster};
 use std::{collections::HashMap, io::Cursor, path::Path, sync::Arc};
 
 #[derive(Debug)]
-pub struct BitmapPlugin;
+pub(crate) struct BitmapPlugin;
 
 #[derive(Clone, Component)]
 pub struct Bitmap {
