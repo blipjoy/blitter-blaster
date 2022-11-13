@@ -1,5 +1,10 @@
 use crate::consts::{APP_NAME, HEIGHT, WIDTH_STANDARD, WIDTH_ULTRAWIDE, WIDTH_WIDE};
-use bevy::{log::LogSettings, prelude::*, utils::tracing::Level};
+use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    log::LogSettings,
+    prelude::*,
+    utils::tracing::Level,
+};
 use directories::ProjectDirs;
 
 #[derive(Debug)]
@@ -10,6 +15,7 @@ pub struct ConfigState {
     dirs: ProjectDirs,
     ar: AspectRatio,
     log_config: LogConfig,
+    fps: bool,
 }
 
 #[derive(Debug)]
@@ -33,9 +39,17 @@ struct LogConfig {
 
 impl Plugin for ConfigPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ConfigState::default())
+        let config = ConfigState::default();
+        let fps = config.fps;
+
+        app.insert_resource(config)
             .add_event::<SaveEvent>()
             .add_system(save_config);
+
+        if fps {
+            app.add_plugin(FrameTimeDiagnosticsPlugin::default())
+                .add_plugin(LogDiagnosticsPlugin::default());
+        }
     }
 }
 
@@ -57,10 +71,15 @@ impl Default for ConfigState {
         // TODO: Load state from the config file
         let ar = AspectRatio::Standard;
 
+        let fps = std::env::var("FPS")
+            .ok()
+            .map(|fps| fps == "1")
+            .unwrap_or_default();
+
         #[cfg(not(feature = "optimize"))]
         let level = Level::INFO;
         #[cfg(feature = "optimize")]
-        let level = Level::ERROR;
+        let level = if fps { Level::INFO } else { Level::ERROR };
 
         // TODO: Load state from the config file
         let level = std::env::var("LOG_LEVEL")
@@ -85,6 +104,7 @@ impl Default for ConfigState {
             dirs,
             ar,
             log_config,
+            fps,
         }
     }
 }
