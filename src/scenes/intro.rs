@@ -2,10 +2,10 @@ use super::GameState;
 use crate::engine::{
     bitmap::{Bitmap, BitmapCache},
     camera::Camera,
+    config::ConfigState,
 };
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
-use bevy_pixels::*;
 use pix::rgb::Rgba8p;
 
 pub struct IntroPlugin;
@@ -13,6 +13,7 @@ pub struct IntroPlugin;
 #[derive(Component)]
 struct IntroScreen;
 
+#[derive(Resource)]
 struct IntroState {
     anim: Vec<Anim>,
     timer: Timer,
@@ -44,9 +45,10 @@ impl IntroPlugin {
         mut commands: Commands,
         asset_server: Res<AssetServer>,
         cache: ResMut<BitmapCache>,
-        options: Res<PixelsOptions>,
+        config: Res<ConfigState>,
     ) {
-        commands.insert_resource(IntroState::new(asset_server, cache, options.width));
+        let (width, _) = config.screen_resolution();
+        commands.insert_resource(IntroState::new(asset_server, cache, width));
     }
 
     fn update(
@@ -55,33 +57,27 @@ impl IntroPlugin {
         mut state: ResMut<IntroState>,
         time: Res<Time>,
         audio: Res<Audio>,
-        options: Res<PixelsOptions>,
+        config: Res<ConfigState>,
     ) {
         if state.timer.tick(time.delta()).finished() {
             if let Some(anim) = state.anim.pop() {
-                commands
-                    .spawn()
-                    .insert(anim.image)
-                    .insert(anim.pos)
-                    .insert(IntroScreen);
+                commands.spawn((anim.image, anim.pos, IntroScreen));
 
                 if let Some(sfx) = anim.sfx {
                     audio.play(sfx);
                 }
 
-                state.timer = Timer::from_seconds(anim.duration, false);
+                state.timer = Timer::from_seconds(anim.duration, TimerMode::Once);
             } else {
                 game_state.set(GameState::Title).unwrap();
             }
         } else if !state.fading && state.anim.is_empty() && state.timer.percent() >= 0.5 {
             state.fading = true;
 
+            let (width, height) = config.screen_resolution();
             let color = Rgba8p::new(0.0, 0.0, 0.0, 1.0);
-            let fade_bundle = Camera::fade_out(1.0, options.width, options.height, color);
-            commands
-                .spawn()
-                .insert_bundle(fade_bundle)
-                .insert(IntroScreen);
+            let fade_bundle = Camera::fade_out(1.0, width, height, color);
+            commands.spawn(fade_bundle).insert(IntroScreen);
         }
     }
 
@@ -109,7 +105,7 @@ impl IntroState {
                 loader.load(0.2, (hw - 120, 140), "logo-b.png", Some("blip1.ogg")),
                 loader.load(0.5, (hw - 40, 50), "logo.png", None),
             ],
-            timer: Timer::from_seconds(0.0, false),
+            timer: Timer::from_seconds(0.0, TimerMode::Once),
             fading: false,
         }
     }

@@ -30,7 +30,7 @@ struct TileIter {
     end: i32,
 }
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub struct BitmapCache {
     map: HashMap<String, Bitmap, RandomState>,
 }

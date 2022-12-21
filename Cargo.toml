@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8"
-bevy = { version = "0.8", default_features = false, features = ["bevy_asset"] }
-bevy_embedded_assets = "0.4"
-bevy_kira_audio = "0.12"
-bevy_pixels = "0.6"
+bevy = { version = "0.9", default_features = false, features = ["bevy_asset"] }
+bevy_embedded_assets = "0.6"
+bevy_kira_audio = "0.13"
+bevy_pixels = "0.8"
 bvh-arena = "1"
 directories = "4"
 pix = "0.13"

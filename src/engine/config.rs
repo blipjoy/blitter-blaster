@@ -1,7 +1,7 @@
 use crate::consts::{APP_NAME, HEIGHT, WIDTH_STANDARD, WIDTH_ULTRAWIDE, WIDTH_WIDE};
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    log::LogSettings,
+    log::LogPlugin,
     prelude::*,
     utils::tracing::Level,
 };
@@ -10,7 +10,7 @@ use directories::ProjectDirs;
 #[derive(Debug)]
 pub struct ConfigPlugin;
 
-#[derive(Debug)]
+#[derive(Debug, Resource)]
 pub struct ConfigState {
     dirs: ProjectDirs,
     ar: AspectRatio,
@@ -124,8 +124,8 @@ impl ConfigState {
         (width, HEIGHT)
     }
 
-    pub fn log_settings(&self) -> LogSettings {
-        LogSettings {
+    pub fn log_plugin(&self) -> LogPlugin {
+        LogPlugin {
             level: self.log_config.level,
             filter: self.log_config.filter.clone(),
         }

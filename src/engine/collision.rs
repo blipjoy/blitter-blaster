@@ -2,7 +2,10 @@ use crate::engine::bitmap::Bitmap;
 use bevy::prelude::*;
 use bvh_arena::{volumes::Aabb, Bvh};
 
-pub type BvhResource = Bvh<Entity, Aabb<2>>;
+#[derive(Default, Resource)]
+pub struct BvhResource {
+    bvh: Bvh<Entity, Aabb<2>>,
+}
 
 #[derive(Debug)]
 pub struct CollisionPlugin;
@@ -30,5 +33,19 @@ impl Bitmap {
         let size = Vec2::new(self.width() as f32, self.height() as f32);
 
         Aabb::from_min_max(pos, pos + size)
+    }
+}
+
+impl BvhResource {
+    fn clear(&mut self) {
+        self.bvh.clear();
+    }
+
+    fn insert(&mut self, key: Entity, value: Aabb<2>) {
+        self.bvh.insert(key, value);
+    }
+
+    pub(crate) fn for_each_overlaps<F: FnMut(&Entity)>(&self, volume: &Aabb<2>, on_overlap: F) {
+        self.bvh.for_each_overlaps(volume, on_overlap);
     }
 }

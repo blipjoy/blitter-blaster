@@ -2,10 +2,10 @@ use super::GameState;
 use crate::engine::{
     bitmap::{BitmapCache, Tiled},
     camera::{Camera, ScreenSpace},
+    config::ConfigState,
 };
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
-use bevy_pixels::*;
 use pix::rgb::Rgba8p;
 
 pub struct TitlePlugin;
@@ -13,6 +13,7 @@ pub struct TitlePlugin;
 #[derive(Component)]
 struct TitleScreen;
 
+#[derive(Resource)]
 struct Motion {
     angle: f32,
     magnitude: f32,
@@ -41,7 +42,7 @@ impl TitlePlugin {
         mut commands: Commands,
         mut cache: ResMut<BitmapCache>,
         asset_server: Res<AssetServer>,
-        options: Res<PixelsOptions>,
+        config: Res<ConfigState>,
         audio: Res<Audio>,
     ) {
         audio
@@ -51,31 +52,19 @@ impl TitlePlugin {
         // Spawn the background
         let transform = Transform::from_xyz(0.0, 0.0, 1.0);
         let bitmap = cache.get_or_create("images/bg1.png", &asset_server);
-        commands
-            .spawn()
-            .insert(bitmap)
-            .insert(transform)
-            .insert(Tiled)
-            .insert(TitleScreen);
+        commands.spawn((bitmap, transform, Tiled, TitleScreen));
 
         // Spawn the title logo
-        let x = (options.width / 2) as f32;
+        let (width, height) = config.screen_resolution();
+        let x = (width / 2) as f32;
         let transform = Transform::from_xyz(x - 120.0, 65.0, 2.0);
         let bitmap = cache.get_or_create("images/odonata.png", &asset_server);
-        commands
-            .spawn()
-            .insert(bitmap)
-            .insert(transform)
-            .insert(ScreenSpace)
-            .insert(TitleScreen);
+        commands.spawn((bitmap, transform, ScreenSpace, TitleScreen));
 
         // Spawn the fade layer
         let color = Rgba8p::new(0.0, 0.0, 0.0, 1.0);
-        let fade_bundle = Camera::fade_in(1.0, options.width, options.height, color);
-        commands
-            .spawn()
-            .insert_bundle(fade_bundle)
-            .insert(TitleScreen);
+        let fade_bundle = Camera::fade_in(1.0, width, height, color);
+        commands.spawn(fade_bundle).insert(TitleScreen);
     }
 
     fn update(time: Res<Time>, mut camera: ResMut<Camera>, mut motion: ResMut<Motion>) {

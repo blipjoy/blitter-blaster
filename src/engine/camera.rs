@@ -1,4 +1,7 @@
-use crate::engine::bitmap::{Bitmap, BitmapPlugin};
+use crate::engine::{
+    bitmap::{Bitmap, BitmapPlugin},
+    config::ConfigState,
+};
 use bevy::prelude::*;
 use bevy_pixels::*;
 use pix::{
@@ -16,6 +19,7 @@ pub struct FadePlugin;
 
 /// The `Camera` resource offers methods for getting and setting the viewport transformation matrix
 /// and size, and for accessing the internal pixel rasterizer.
+#[derive(Resource)]
 pub struct Camera {
     viewport: Viewport,
     raster: Raster<Rgba8p>,
@@ -50,16 +54,17 @@ pub struct FadeBundle {
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        let PixelsOptions { width, height } = *app.world.resource::<PixelsOptions>();
+        let config = app.world.resource::<ConfigState>();
+        let (width, height) = config.screen_resolution();
 
         let viewport = Viewport {
-            transform: Transform::identity(),
+            transform: Transform::IDENTITY,
             size: Vec2::new(width as f32, height as f32),
         };
         let raster = Raster::<Rgba8p>::with_clear(width, height);
 
         app.insert_resource(Camera { viewport, raster })
-            .add_plugin(PixelsPlugin)
+            .add_plugin(PixelsPlugin { width, height })
             .add_plugin(BitmapPlugin)
             .add_plugin(FadePlugin);
     }
@@ -93,7 +98,7 @@ impl Camera {
     pub fn fade_in(time_seconds: f32, width: u32, height: u32, base_color: Rgba8p) -> FadeBundle {
         let bitmap = Bitmap::with_color(width, height, base_color);
         let fade = Fade {
-            timer: Timer::from_seconds(time_seconds, false),
+            timer: Timer::from_seconds(time_seconds, TimerMode::Once),
             from: 1.0,
             to: 0.0,
             base_color,
@@ -115,7 +120,7 @@ impl Camera {
     pub fn fade_out(time_seconds: f32, width: u32, height: u32, base_color: Rgba8p) -> FadeBundle {
         let bitmap = Bitmap::with_clear(width, height);
         let fade = Fade {
-            timer: Timer::from_seconds(time_seconds, false),
+            timer: Timer::from_seconds(time_seconds, TimerMode::Once),
             from: 0.0,
             to: 1.0,
             base_color,
